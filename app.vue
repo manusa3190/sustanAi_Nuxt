@@ -1,12 +1,20 @@
+<script setup lang="ts">
+
+</script>
+
 <template>
-  <div>
-    <NuxtRouteAnnouncer />
+    <!-- <NuxtRouteAnnouncer /> -->  
+  <nav>
+    <div class="title">{{ $route.name }}</div>
+  </nav>
+
+  <main>
     <NuxtPage />
-  </div>
+  </main>
 </template>
 
 <style>
-h1 {
+.title {
   @apply font-bold text-3xl p-2
 }
 
