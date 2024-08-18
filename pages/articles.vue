@@ -1,68 +1,47 @@
 <script setup lang="ts">
-import jspreadsheet from 'jspreadsheet-ce';
-import { Column, CustomEditor, JspreadsheetInstance } from 'jspreadsheet-ce';
+import { Grid,h } from 'gridjs';
+import "gridjs/dist/theme/mermaid.css";
 
 definePageMeta({name:'記事一覧'})
 
-// interface Article {
-//   article_id:number
-//   title:string
-//   source:string
-// }
+const {Article} = useArticle()
 
-class Article {
-    article_id = 0
-    title      = ""
-    source     = ""
-
-    constructor(init?: Partial<Article>){
-        const isDate = (v: string | number) => !isNaN(new Date(v).getTime());
-        for(const key in init){
-            const value = init[key]
-            init[key] = isDate(value)? new Date(value):value
-        }
-        Object.assign(this, init)
-    }
-
-    get data():InstanceType<typeof Article>{
-        return Object.entries(this).reduce((res,[key,val])=>{
-            return Object.assign(res,val!==undefined? {[key]:val}:{})
-        },{} as InstanceType<typeof Article>)
-    }
-}
-
-const articles:Ref<any[]> = ref([])
+const articles = ref<typeof Article[]>([])
 
 try{
-  const {data} = await useFetch(`http://127.0.0.1:8000/articles?all=true`)
-  articles.value = data.value as Article[]
+  const {data} = await useFetch(`http://127.0.0.1:8000/articles`)
+  articles.value = data.value.map(d=>new Article(d))
 }catch(err){
 
 }
 
-const columns:Column[] = [
-  {title:'id',key:'article_id',visible:false},
-  {title:'記事取得日',key:'publish_date'},
-  {title:'タイトル',key:'title',width:500},
-  {title:'AI推測関心点',key:'ai_score',width:100},
-  {title:'ユーザー評点',key:'user_score',width:100, type:'dropdown',source:[1,2,3,4,5]},
-]
 
-var jsp:JspreadsheetInstance;
+
+var gridTable:Grid
 
 onMounted(()=>{
-  const d = articles.value.map(article=>columns.map(col=>article[col.key]))
-  console.log(d)
+  gridTable = new Grid({
+    columns:[
+      {id:'article_id', visible:false},
+      {name:'記事取得日',id:'publish_date', width:120, formatter:(cell,row,col)=>cell?.toLocaleDateString()},
+      {name:'タイトル',id:'title',width:500},
+      {name:'AI推測関心点',id:'ai_score',width:100},
+      {name:'ユーザー評点',id:'user_score',width:100, type:'dropdown',source:[1,2,3,4,5]},
+      {name:'詳細',formatter:(cell,row,column)=>{
+        return h('button', {
+            className: 'py-2 mb-4 px-4 border rounded-md text-white bg-blue-600',
+            onClick: async() => {
+              const articleId = row.cells[0].data
+              const res = await navigateTo(`/articles/${articleId}`,{replace:true})
+              // my_modal_1.showModal()
+            }
+          }, '詳細');
+      }}
+    ],
+    data:articles.value,
+  })
 
-  jsp = jspreadsheet(document.getElementById('my-spreadsheet') as HTMLDivElement, {
-      columns:Object.assign(columns,{
-        filters:true,
-        allowComments:true,
-        rowResize: true,
-        columnDrag: true,
-      }),
-      data:d
-  });  
+  gridTable.render(document.getElementById('my-grid'))
 })
 
 const submitAItraining = ()=>{
@@ -84,7 +63,7 @@ const submitAItraining = ()=>{
 
   console.log('diffData : ',diffData)
 
-  $fetch('http://127.0.0.1:8000/articles_training?all=True',{
+  $fetch('http://127.0.0.1:8000/articles_training',{
     method:'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -101,11 +80,12 @@ const submitAItraining = ()=>{
     <nav class=" navbar space-x-3">
       <div class="flex-1"></div>
       <button class="btn btn-primary" @click="submitAItraining">全文取得</button>
-
-      <button class="btn btn-primary" @click="submitAItraining">AI学習</button>
     </nav>
 
-    <div id='my-spreadsheet' class="m-5"></div>
+    <div id='my-grid' class="m-5"></div>
+
+    <NuxtPage :articles="articles"></NuxtPage>
+
   </div>
 
 </template>

@@ -12,6 +12,7 @@
   "dependencies": {
     "@jspreadsheet/vue": "^11.4.10",
     "daisyui": "^4.12.10",
+    "gridjs": "^6.2.0",
     "jspreadsheet-ce": "^4.2.1",
     "nuxt": "^3.12.4",
     "vue": "latest"
