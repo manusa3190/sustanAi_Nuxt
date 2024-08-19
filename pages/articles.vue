@@ -4,18 +4,14 @@ import "gridjs/dist/theme/mermaid.css";
 
 definePageMeta({name:'記事一覧'})
 
-const {Article} = useArticle()
-
-const articles = ref<typeof Article[]>([])
+const {articles,fetchItems} = useArticle()
 
 try{
   const {data} = await useFetch(`http://127.0.0.1:8000/articles`)
-  articles.value = data.value.map(d=>new Article(d))
+  fetchItems(data)
 }catch(err){
 
 }
-
-
 
 var gridTable:Grid
 
@@ -44,32 +40,14 @@ onMounted(()=>{
   gridTable.render(document.getElementById('my-grid'))
 })
 
-const submitAItraining = ()=>{
-  // サーバーから取得した元データであるarticlesと、テーブルで編集したjspのデータを比較し、
-  // ユーザーが点数をつけたデータのみサーバー側に送る
-  const userScore_Index = columns.findIndex(column=>column['key']==='user_score')
-  const articleId_Index = columns.findIndex(column=>column['key']==='article_id')
+watch(articles,()=>{
+  gridTable.updateConfig({data:articles.value}).forceRender()
+},{deep:true})
 
-  const diffData = jsp.getJson().flatMap(data=>{
-    const [id,編集後の点] = [data[articleId_Index], data[userScore_Index]]
-    const targetArticle = articles.value.find(article=>article.id===id)
-    const もとの点 = targetArticle['user_scored_interest_level']
-    if(編集後の点==='' || もとの点 === 編集後の点){
-      return []
-    }else{
-      return [{id,user_scored_interest_level:編集後の点}]
-    }
-  })
-
-  console.log('diffData : ',diffData)
-
-  $fetch('http://127.0.0.1:8000/articles_training',{
-    method:'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(diffData)
-  })
+const fetchAll =async () =>{
+  const {data} = await $fetch('http://127.0.0.1:8000/articles?all=true')
+  console.log(data.value)
+  fetchItems(data)
 }
 
 </script>
@@ -79,12 +57,12 @@ const submitAItraining = ()=>{
 
     <nav class=" navbar space-x-3">
       <div class="flex-1"></div>
-      <button class="btn btn-primary" @click="submitAItraining">全文取得</button>
+      <button class="btn btn-primary" @click="fetchAll">全文取得</button>
     </nav>
 
     <div id='my-grid' class="m-5"></div>
 
-    <NuxtPage :articles="articles"></NuxtPage>
+    <NuxtPage></NuxtPage>
 
   </div>
 

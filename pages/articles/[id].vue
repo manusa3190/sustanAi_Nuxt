@@ -1,52 +1,66 @@
 <script setup lang="ts">
 definePageMeta({name:'記事詳細'})
 
-const {Article} = useArticle()
-
-const {articles} = defineProps<{articles:typeof Article[]}>()
+const {articles,updateItem} = useArticle()
 
 const route = useRoute() 
-const article_id = route.params.id
 
-const {data} = await useFetch(`http://127.0.0.1:8000/article?article_id=${article_id}`)
+const article = articles.value.find(a=>String(a.article_id) === route.params.id)!
 
-const article = new Article(data.value)
+const user_score = ref(article.user_score)
+
+const hasChange = ref(false)
+watch(user_score,(val)=> hasChange.value = val !== article.user_score)
 
 const sendPage = (direction:"prev"|"next")=>{
-    var nextPageIndex=0;
+    if(!article)return
 
-    const currentArticleIndex = articles.findIndex(a=>a.article_id == article.article_id)
+    var nextPageIndex=0;
+    const currentArticleIndex = articles.value.findIndex(a=>a.article_id == article.article_id)
     if(currentArticleIndex < 0){
         alert("エラー")
         return
     }
 
     if(direction==="next"){
-        nextPageIndex = currentArticleIndex < articles.length-1 ? currentArticleIndex+1:0
+        nextPageIndex = currentArticleIndex < articles.value.length-1 ? currentArticleIndex+1:0
     }else if(direction==="prev"){
-        nextPageIndex = currentArticleIndex === 0 ? articles.length-1:currentArticleIndex-1
+        nextPageIndex = currentArticleIndex === 0 ? articles.value.length-1:currentArticleIndex-1
     }
 
-    const nextArticle:InstanceType<typeof Article> = articles[nextPageIndex]
+    const nextArticle = articles.value[nextPageIndex]
 
     navigateTo(`/articles/${nextArticle.article_id}`)
 }
 
 const training=async()=>{
     isLoading.value = true
+
+    const scoreDiff = user_score.value - (article.user_score? article.user_score:3)
+    console.log(scoreDiff)
+    const preference_adjust = article.keywords.reduce((acc,w)=>Object.assign(acc,{[w]:scoreDiff}),{})
+    const data = {
+            preference_id:article.preference_id,
+            user_score:user_score.value,
+            preference_adjust:JSON.stringify(preference_adjust)
+        }
+    
     try{
         const res = await $fetch('http://127.0.0.1:8000/training',{
             method:"POST",
             headers: {
             'Content-Type': 'application/json'
             },
-            body:JSON.stringify({
-                user_id:1,
-                article_id:article.article_id,
-                user_score:article.user_score
-            })
+            body:JSON.stringify(data)
         })
         console.log(res)
+
+        if(res.result==='success'){
+            useArticle().updateItem(res.data)
+            hasChange.value = false
+        }else{
+
+        }
     }catch(err){
 
     }finally{
@@ -84,7 +98,7 @@ const isLoading = ref(false)
                 <dl class="flex space-x-3">
                     <dt>あなたの採点</dt>
                     <dd>
-                        <select v-model="article.user_score">
+                        <select v-model="user_score">
                             <option v-for=" s of [1,2,3,4,5]" :value="s">{{ s }}</option>
                         </select>
                         
@@ -92,7 +106,7 @@ const isLoading = ref(false)
                 </dl>                
             </div>
 
-            <button class="btn btn-primary " @click="training">AIに学習させる</button>
+            <button class="btn btn-primary " @click="training" :disabled="!hasChange">AIに学習させる</button>
         </div>
 
     </div>

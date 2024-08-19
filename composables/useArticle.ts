@@ -1,30 +1,38 @@
 export default ()=>{
-    class Article {
-        article_id = 0
-        title      = ""
-        content    = ""
-        source     = ""
-        publish_date = new Date()
-        ai_score = 0
-        user_score=0
+    const isDate = (v: string | number) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(typeof(v)==='string'? v:String(v))
     
-        constructor(init?: Partial<Article>){
+    const articles = useState<Article[]>('articles',()=>[])
+
+    const fetchItems = (data:Ref) =>{
+        const parseData = (data:Object)=> {
             const isDate = (v: string | number) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(typeof(v)==='string'? v:String(v))
-            for(const key in init){
-                const value = init[key]
-                init[key] = isDate(value)? new Date(value):value
-            }
-            Object.assign(this, init)
+            const isArray = (v: string | number) => /^\[.*\]$/.test(typeof(v)==='string'? v:String(v))
+            
+            return Object.entries(data).reduce((item,[k,v])=>{
+                var val;
+                if(isDate(v)){
+                    val = new Date(v)
+                }else if(isArray(v)){
+                    val = JSON.parse(v)
+                }else{
+                    val = v
+                }
+                return Object.assign(item,{[k]:val})
+            },{})
         }
-    
-        get data():InstanceType<typeof Article>{
-            return Object.entries(this).reduce((res,[key,val])=>{
-                return Object.assign(res,val!==undefined? {[key]:val}:{})
-            },{} as InstanceType<typeof Article>)
-        }
+
+        articles.value = data.value.map(d=>parseData(d) as Article)
     }
 
-    const articles = useState('articles',()=>[])
+    const updateItem = (data:Article)=>{
+        const targetItemIdx = articles.value.findIndex(a=>a.preference_id===data.preference_id)
+        const targetItem = articles.value[targetItemIdx]
+        for(const key in data){
+            targetItem[key] = isDate(data[key])? new Date(data[key]):data[key]
+        }
 
-    return {Article, articles}
+        articles.value.splice(targetItemIdx,1,targetItem)        
+    }
+
+    return {articles,fetchItems, updateItem}
   }
