@@ -3,7 +3,7 @@ export default ()=>{
     
     const articles = useState<Article[]>('articles',()=>[])
 
-    const fetchItems = (data:Ref) =>{
+    const fetchItems = (data:Object[]) =>{
         const parseData = (data:Object)=> {
             const isDate = (v: string | number) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(typeof(v)==='string'? v:String(v))
             const isArray = (v: string | number) => /^\[.*\]$/.test(typeof(v)==='string'? v:String(v))
@@ -21,7 +21,7 @@ export default ()=>{
             },{})
         }
 
-        articles.value = data.value.map(d=>parseData(d) as Article)
+        articles.value = data.map(d=>parseData(d) as Article)
     }
 
     const updateItem = (data:Article)=>{

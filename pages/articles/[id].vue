@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({name:'記事詳細'})
 
-const {articles,updateItem} = useArticle()
+const {articles} = useArticle()
 
 const route = useRoute() 
 
@@ -34,16 +34,22 @@ const sendPage = (direction:"prev"|"next")=>{
 }
 
 const training=async()=>{
+    const currentUser = useState<{userId:string}>('currentUser').value
+    if( !currentUser || !currentUser.userId){
+        alert('ユーザー名が指定されていません')
+    }
+
     isLoading.value = true
 
     const scoreDiff = user_score.value - (article.user_score? article.user_score:3)
-    console.log(scoreDiff)
     const preference_adjust = article.keywords.reduce((acc,w)=>Object.assign(acc,{[w]:scoreDiff}),{})
     const data = {
             preference_id:article.preference_id,
+            user_id:currentUser.userId,
             user_score:user_score.value,
             preference_adjust:JSON.stringify(preference_adjust)
         }
+    console.log(data)
     
     try{
         const res = await $fetch('http://127.0.0.1:8000/training',{
@@ -57,9 +63,10 @@ const training=async()=>{
 
         if(res.result==='success'){
             useArticle().updateItem(res.data)
+            alert('学習しました')
             hasChange.value = false
         }else{
-
+            alert('学習に失敗しました')
         }
     }catch(err){
 
@@ -81,30 +88,40 @@ const isLoading = ref(false)
     </div>
 
     <div v-else class="modal-box max-w-none">
-        <div class=" flex justify-between">
+        <div class=" navbar">
             <div class=" card-title max-w-[70%] overflow-hidden whitespace-nowrap">{{ article.title }}</div>
+            <div class=" flex-1"></div>
             <button @click="navigateTo(`/articles`)" class=" btn btn-primary">Close</button>
         </div>
 
-        <div class="py-4 border border-gray-400 max-h-96 overflow-scroll">
-            <p>{{ article.content }}</p>
+        <div class="p-4 border border-gray-600 max-h-[36rem] overflow-scroll">
+            <pre>{{ article.content }}</pre>
         </div>
 
-        <div class="flex justify-between py-6">
-            <div class="space-y-3">
-                <dl class="flex space-x-3">
-                    <dt>AI採点</dt><dd>{{ article.ai_score }}</dd>
-                </dl>
-                <dl class="flex space-x-3">
-                    <dt>あなたの採点</dt>
-                    <dd>
-                        <select v-model="user_score">
-                            <option v-for=" s of [1,2,3,4,5]" :value="s">{{ s }}</option>
-                        </select>
-                        
-                    </dd>
-                </dl>                
-            </div>
+        <div class="my-3 flex">
+            <label>キーワード：</label>
+            <ul class=" space-x-2">
+                <li class=" badge badge-primary" v-for="keyword in article.keywords">{{ keyword }}</li>
+            </ul>
+        </div>
+
+        <div class="flex py-6">
+
+            <dl class="flex space-x-3">
+                <dt>AI採点</dt>
+                <dd>
+                    <input class=" input disabled:text-inherit" :value="article.ai_score" disabled>
+                </dd>
+            </dl>
+            <dl class="flex space-x-3">
+                <dt>あなたの採点</dt>
+                <dd>
+                    <select v-model="user_score" class=" select">
+                        <option v-for=" s of [1,2,3,4,5]" :value="s">{{ s }}</option>
+                    </select>
+                </dd>
+            </dl>                
+            <div class="flex-1"></div>
 
             <button class="btn btn-primary " @click="training" :disabled="!hasChange">AIに学習させる</button>
         </div>
