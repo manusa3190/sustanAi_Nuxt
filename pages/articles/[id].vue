@@ -34,9 +34,11 @@ const sendPage = (direction:"prev"|"next")=>{
 }
 
 const training=async()=>{
-    const currentUser = useState<{userId:string}>('currentUser').value
-    if( !currentUser || !currentUser.userId){
+    const currentUser = useState<User>('currentUser').value
+    console.log(currentUser)
+    if( !currentUser || !currentUser.user_id){
         alert('ユーザー名が指定されていません')
+        return
     }
 
     isLoading.value = true
@@ -45,7 +47,7 @@ const training=async()=>{
     const preference_adjust = article.keywords.reduce((acc,w)=>Object.assign(acc,{[w]:scoreDiff}),{})
     const data = {
             preference_id:article.preference_id,
-            user_id:currentUser.userId,
+            user_id:currentUser.user_id,
             user_score:user_score.value,
             preference_adjust:JSON.stringify(preference_adjust)
         }
@@ -83,11 +85,7 @@ const isLoading = ref(false)
 <dialog id="my_modal_1" class="modal bg-black bg-opacity-70 flex justify-around" :open="!!$route.params.id">
     <button class=" btn btn-circle mx-3" @click="sendPage('prev')">{{ "<" }}</button>
 
-    <div v-if="isLoading" class="modal-box !w-lvw grid place-content-center place-items-center">
-        <div class=" loading"></div>
-    </div>
-
-    <div v-else class="modal-box max-w-none">
+    <div class="modal-box max-w-none">
         <div class=" navbar">
             <div class=" card-title max-w-[70%] overflow-hidden whitespace-nowrap">{{ article.title }}</div>
             <div class=" flex-1"></div>
@@ -107,23 +105,24 @@ const isLoading = ref(false)
 
         <div class="flex py-6">
 
-            <dl class="flex space-x-3">
-                <dt>AI採点</dt>
-                <dd>
-                    <input class=" input disabled:text-inherit" :value="article.ai_score" disabled>
-                </dd>
-            </dl>
-            <dl class="flex space-x-3">
-                <dt>あなたの採点</dt>
-                <dd>
-                    <select v-model="user_score" class=" select">
-                        <option v-for=" s of [1,2,3,4,5]" :value="s">{{ s }}</option>
-                    </select>
-                </dd>
-            </dl>                
+            <label class="label">
+                <span class=" mr-3">AI採点</span>
+                <input type="text" class="!text-lg !text-inherit !bg-white !border-none" :value="article.ai_score" disabled>
+            </label>
+
+            <label class="label">
+                <span class=" mr-3">あなたの採点</span>
+                <select v-model="user_score" class=" select">
+                    <option v-for=" s of [1,2,3,4,5]" :value="s">{{ s }}</option>
+                </select>
+            </label>
+              
             <div class="flex-1"></div>
 
-            <button class="btn btn-primary " @click="training" :disabled="!hasChange">AIに学習させる</button>
+            <button class="btn btn-primary " @click="training" :disabled="!hasChange">
+                <span v-if="!isLoading">AIに学習させる</span>
+                <span v-else class="loading loading-spinner"></span>
+            </button>
         </div>
 
     </div>

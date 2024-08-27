@@ -6,15 +6,21 @@ definePageMeta({
     name:'ユーザーコンフィグ'
 })
 
-const res = await useFetch('http://127.0.0.1:8000/user',{
+const currentUser = useState<User>('currentUser').value
+
+if(!currentUser.user_id){
+    alert('ユーザーを設定してください')
+}
+
+const {data} = await useFetch('http://127.0.0.1:8000/user',{
     method:'GET',
     headers: {'Content-Type': 'application/json'},
-    params:{user_id:1}
+    params:{user_id:currentUser.user_id}
 })
 
-const data = res.data.value
-
-const preference = ref<Object>(JSON.parse(data.preference))
+const preference = ref<Object>(
+    data.value? JSON.parse(data.value.preference):{}
+)
 
 var jsp:JspreadsheetInstance;
 
@@ -33,12 +39,12 @@ onMounted(()=>{
 })
 
 const postUserConfig= async()=>{
-    const currentUser = useState('currentUser').value
+
 
     const rows = jsp.getData()
     const preference = rows.reduce((item,[key,value])=>Object.assign(item,{[key]:Number(value)}),{})
     const data = {
-        user_id:currentUser.userId,
+        user_id:currentUser.user_id,
         preference:preference
     }
     console.log(data)
@@ -48,9 +54,6 @@ const postUserConfig= async()=>{
         body:JSON.stringify(data)
     })
 }
-
-
-
 
 </script>
 

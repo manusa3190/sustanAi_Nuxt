@@ -1,8 +1,13 @@
 <script setup lang="ts">
-const currentUser = useState('currentUser',()=>({
-  userId:1,
-  userName:"ユーザー1"
-}))
+
+const users:User[] = [
+  { user_id:1,user_name:'ユーザー1'},
+  { user_id:2,user_name:'ユーザー2'},
+  { user_id:3,user_name:'ユーザー3'},
+]
+
+
+const currentUser = useState<User>('currentUser',()=>({user_id:1,user_name:'ユーザー1'})).value
 
 const pages = [
   {
@@ -49,11 +54,16 @@ const pages = [
           <div class="flex-1"></div>
 
           <div>
-              <input type="text" class=" input" v-model="currentUser.userName" placeholder="ユーザー名">
+            <label>
+                <span v-if="!currentUser.user_id" class=" label-text text-red-600">ユーザーを選択してください</span>
+                <select v-model="currentUser.user_id" class="select select-sm">
+                  <option v-for="u in users" :value="u.user_id">{{ u.user_name }}</option>
+                </select>              
+            </label>
           </div>
         </nav>
 
-        <NuxtPage />
+        <NuxtPage :key="currentUser.user_id" />
     </main>    
 
   </div>
@@ -74,5 +84,14 @@ const pages = [
 
 .jdropdown-item:hover {
   @apply bg-orange-50
+}
+
+
+select {
+  @apply select select-sm
+}
+
+input[type='text'] {
+  @apply input input-sm
 }
 </style>
